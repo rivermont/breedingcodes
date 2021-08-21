@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
+import matplotlib.dates as dates
 import requests
 import json
 
@@ -29,27 +31,40 @@ codes = {"": 0,
          "NY": 20
          }
 
-location = ""
+location = ""  # must be personal/hotspot locID, not region code
 species = ""
-url = f"https://ebird.org/mapServices/getLocInfo.do?fmt=json&locID={location}&speciesCodes={species}"
+portal = "atlasnc"
+byr = "2020"  # required by some portals?
+url = f"https://ebird.org/{portal}/mapServices/getLocInfo.do?fmt=json&byr={byr}&locID={location}&speciesCodes={species}"
 
 response = requests.get(url).text
 # print(response)
-data1 = json.loads(response)['infoList']
-data2 = []
+response = json.loads(response)['infoList']
+data = []
 
-for i in data1:
+# create new dataset with only the needed variables
+for i in response:
     a = {}
     a["date"] = i["obsDt"]
+    # try:
+        # a["num"] = int(i["howMany"])
+    # except ValueError:  # X given for abundance
+        # a["num"] = 1
     try:
-        a["num"] = int(i["howMany"])
-    except ValueError:  # X given for abundance
-        a["num"] = 1
-    try:
-        a["bcode"] = codes[i["evidence"]]
-    except KeyError:
+        a["bcode"] = codes[i["breedingCode"]]
+    except KeyError:  # Observed but without breeding code
         a["bcode"] = 1
-    data2.append(a)
+    data.append(a)
 
-print(data2)
+del response
+
+
+# Plotting
+
+x = [dates.datestr2num(i["date"]) for i in data]
+
+y = [i["bcode"] for i in data]
+
+plt.scatter(x, y)
+plt.show()
 
